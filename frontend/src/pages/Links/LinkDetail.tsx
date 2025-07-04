@@ -81,15 +81,33 @@ const LinkDetail: React.FC = () => {
       dataIndex: 'countries',
       key: 'countries',
       width: 200,
-      render: (countries: string[]) => (
-        <Space size={4} wrap>
-          {countries?.map(country => (
-            <Tag key={country} icon={getCountryFlag(country)}>
-              {country}
-            </Tag>
-          ))}
-        </Space>
-      ),
+      render: (countries: string | string[]) => {
+        // Handle both string and array formats
+        let countryList: string[] = []
+        if (typeof countries === 'string') {
+          try {
+            countryList = JSON.parse(countries)
+          } catch {
+            countryList = []
+          }
+        } else if (Array.isArray(countries)) {
+          countryList = countries
+        }
+        
+        if (!countryList.length) {
+          return <Tag color="default">All Countries</Tag>
+        }
+        
+        return (
+          <Space size={4} wrap>
+            {countryList.map(country => (
+              <Tag key={country} icon={getCountryFlag(country)}>
+                {country}
+              </Tag>
+            ))}
+          </Space>
+        )
+      },
     },
     {
       title: 'Status',

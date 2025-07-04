@@ -215,7 +215,13 @@ func (h *LinkHandler) GetTargets(c *gin.Context) {
 		return
 	}
 	
-	c.JSON(http.StatusOK, targets)
+	// Convert targets to response format with parsed JSON fields
+	responses := make([]models.TargetResponse, len(targets))
+	for i, target := range targets {
+		responses[i] = target.ToResponse()
+	}
+	
+	c.JSON(http.StatusOK, responses)
 }
 
 func (h *LinkHandler) UpdateTarget(c *gin.Context) {

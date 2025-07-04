@@ -29,7 +29,7 @@ export interface Target {
   weight: number
   cap: number
   current_hits: number
-  countries: string[]
+  countries: string[] | string
   param_mapping: Record<string, string>
   static_params: Record<string, string>
   is_active: boolean
