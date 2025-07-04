@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 	
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	
@@ -17,14 +17,16 @@ import (
 )
 
 type LinkService struct {
-	db    *gorm.DB
-	redis *redis.Client
+	db       *gorm.DB
+	redis    *redis.Client
+	ipMemory *IPMemoryService
 }
 
 func NewLinkService(db *gorm.DB, redis *redis.Client) *LinkService {
 	return &LinkService{
-		db:    db,
-		redis: redis,
+		db:       db,
+		redis:    redis,
+		ipMemory: NewIPMemoryService(redis),
 	}
 }
 
@@ -71,8 +73,7 @@ func (s *LinkService) SelectTarget(link *models.Link, ip string, country string)
 		return nil, errors.New("no targets available")
 	}
 	
-	activeTargets := make([]*models.Target, 0)
-	totalWeight := 0
+	eligibleTargets := make([]*models.Target, 0)
 	
 	for i := range link.Targets {
 		target := &link.Targets[i]
@@ -89,7 +90,7 @@ func (s *LinkService) SelectTarget(link *models.Link, ip string, country string)
 			if err := json.Unmarshal([]byte(target.Countries), &allowedCountries); err == nil && len(allowedCountries) > 0 {
 				allowed := false
 				for _, allowedCountry := range allowedCountries {
-					if strings.EqualFold(allowedCountry, country) {
+					if strings.EqualFold(allowedCountry, country) || strings.EqualFold(allowedCountry, "ALL") {
 						allowed = true
 						break
 					}
@@ -100,42 +101,24 @@ func (s *LinkService) SelectTarget(link *models.Link, ip string, country string)
 			}
 		}
 		
-		activeTargets = append(activeTargets, target)
-		totalWeight += target.Weight
+		eligibleTargets = append(eligibleTargets, target)
 	}
 	
-	if len(activeTargets) == 0 {
+	if len(eligibleTargets) == 0 {
 		return nil, errors.New("no targets available for this country")
 	}
 	
+	// Use IP memory service to select target
 	ctx := context.Background()
-	ipKey := fmt.Sprintf("ip:%s:link:%d", ip, link.ID)
-	usedTargets, _ := s.redis.SMembers(ctx, ipKey).Result()
-	
-	var unusedTargets []*models.Target
-	for _, target := range activeTargets {
-		used := false
-		for _, usedID := range usedTargets {
-			if fmt.Sprintf("%d", target.ID) == usedID {
-				used = true
-				break
-			}
+	selected, err := s.ipMemory.GetUnusedTarget(ctx, ip, link.LinkID, eligibleTargets)
+	if err != nil {
+		// Fallback to weighted random selection
+		totalWeight := 0
+		for _, t := range eligibleTargets {
+			totalWeight += t.Weight
 		}
-		if !used {
-			unusedTargets = append(unusedTargets, target)
-		}
+		selected = selectWeightedRandom(eligibleTargets, totalWeight)
 	}
-	
-	targetsToSelect := unusedTargets
-	if len(targetsToSelect) == 0 {
-		targetsToSelect = activeTargets
-		s.redis.Del(ctx, ipKey)
-	}
-	
-	selected := selectWeightedRandom(targetsToSelect, totalWeight)
-	
-	s.redis.SAdd(ctx, ipKey, fmt.Sprintf("%d", selected.ID))
-	s.redis.Expire(ctx, ipKey, 12*time.Hour)
 	
 	return selected, nil
 }
