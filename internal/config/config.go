@@ -12,6 +12,7 @@ type Config struct {
 	Security SecurityConfig `mapstructure:"security"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 	Logging  LoggingConfig  `mapstructure:"logging"`
+	GeoIP    GeoIPConfig    `mapstructure:"geoip"`
 }
 
 type ServerConfig struct {
@@ -57,6 +58,16 @@ type LoggingConfig struct {
 	Format   string `mapstructure:"format"`
 	Output   string `mapstructure:"output"`
 	FilePath string `mapstructure:"file_path"`
+}
+
+type GeoIPConfig struct {
+	Enabled            bool   `mapstructure:"enabled"`
+	Provider           string `mapstructure:"provider"`
+	MaxMindAccountID   string `mapstructure:"maxmind_account_id"`
+	MaxMindLicenseKey  string `mapstructure:"maxmind_license_key"`
+	DatabasePath       string `mapstructure:"database_path"`
+	UpdateIntervalDays int    `mapstructure:"update_interval_days"`
+	CacheSize          int    `mapstructure:"cache_size"`
 }
 
 func Load(configPath string) (*Config, error) {

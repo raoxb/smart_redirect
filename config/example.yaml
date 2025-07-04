@@ -38,3 +38,12 @@ logging:
   format: json # json, text
   output: stdout # stdout, file
   file_path: logs/app.log
+
+geoip:
+  enabled: true
+  provider: maxmind # maxmind, ip-api
+  maxmind_account_id: ""
+  maxmind_license_key: ""
+  database_path: data/GeoLite2-City.mmdb
+  update_interval_days: 7
+  cache_size: 10000
