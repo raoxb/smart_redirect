@@ -1,21 +1,26 @@
-import React from 'react'
-import { Row, Col, Card, Statistic, Table, Tag, Space, Typography } from 'antd'
+import React, { useState } from 'react'
+import { Row, Col, Card, Statistic, Table, Tag, Space, Typography, Select } from 'antd'
 import {
   LinkOutlined,
   EyeOutlined,
   GlobalOutlined,
   UserOutlined,
   ArrowUpOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useSystemStats, useLinks } from '@/hooks/useApi'
+import { useRealtimeStats } from '@/hooks/useStats'
+import { StatsCharts } from '@/components/charts/StatsCharts'
 import { formatNumber, getCountryFlag } from '@/utils/format'
 
 const { Title } = Typography
+const { Option } = Select
 
 const Dashboard: React.FC = () => {
+  const [timeRange, setTimeRange] = useState(24)
   const { data: systemStats, isLoading: statsLoading } = useSystemStats()
   const { data: linksData, isLoading: linksLoading } = useLinks(1, 10)
+  const { data: realtimeStats, isLoading: realtimeLoading, refetch } = useRealtimeStats(timeRange)
 
   // Mock hourly data for the chart
   const hourlyData = Array.from({ length: 24 }, (_, i) => ({
@@ -80,9 +85,28 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: 24 }}>
-        Dashboard
-      </Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <Title level={2} style={{ margin: 0 }}>
+          Dashboard
+        </Title>
+        <Space>
+          <Select value={timeRange} onChange={setTimeRange} style={{ width: 120 }}>
+            <Option value={6}>6 Hours</Option>
+            <Option value={12}>12 Hours</Option>
+            <Option value={24}>24 Hours</Option>
+            <Option value={48}>48 Hours</Option>
+            <Option value={168}>7 Days</Option>
+          </Select>
+          <Tag 
+            icon={<ReloadOutlined spin={realtimeLoading} />} 
+            color="processing" 
+            onClick={() => refetch()}
+            style={{ cursor: 'pointer' }}
+          >
+            {realtimeLoading ? 'Loading...' : 'Refresh'}
+          </Tag>
+        </Space>
+      </div>
 
       {/* Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
@@ -129,58 +153,8 @@ const Dashboard: React.FC = () => {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {/* Traffic Chart */}
-        <Col xs={24} lg={16}>
-          <Card title="24-Hour Traffic" extra={<Tag color="blue">Last 24 Hours</Tag>}>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" />
-                <YAxis />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="hits" 
-                  stroke="#1890ff" 
-                  strokeWidth={2}
-                  dot={{ fill: '#1890ff', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-
-        {/* Top Countries */}
-        <Col xs={24} lg={8}>
-          <Card title="Traffic by Country" extra={<GlobalOutlined />}>
-            {systemStats?.top_countries ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={systemStats.top_countries.slice(0, 5)}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="hits"
-                    label={({ country, hits }) => `${getCountryFlag(country)} ${formatNumber(hits)}`}
-                  >
-                    {systemStats.top_countries.slice(0, 5).map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatNumber(value as number)} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                No data available
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
+      {/* Real-time Statistics Charts */}
+      {realtimeStats && <StatsCharts stats={realtimeStats} />}
 
       {/* Recent Links */}
       <Card 

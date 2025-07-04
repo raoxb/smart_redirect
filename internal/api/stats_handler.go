@@ -6,7 +6,7 @@ import (
 	"time"
 	
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	
 	"github.com/raoxb/smart_redirect/internal/models"
@@ -14,14 +14,16 @@ import (
 )
 
 type StatsHandler struct {
-	db          *gorm.DB
-	rateLimiter *services.RateLimiter
+	db           *gorm.DB
+	rateLimiter  *services.RateLimiter
+	statsService *services.StatsService
 }
 
 func NewStatsHandler(db *gorm.DB, redis *redis.Client) *StatsHandler {
 	return &StatsHandler{
-		db:          db,
-		rateLimiter: services.NewRateLimiter(redis),
+		db:           db,
+		rateLimiter:  services.NewRateLimiter(redis),
+		statsService: services.NewStatsService(db, redis),
 	}
 }
 
@@ -225,5 +227,26 @@ func (h *StatsHandler) GetHourlyStats(c *gin.Context) {
 		Order("hour").
 		Scan(&stats)
 	
+	c.JSON(http.StatusOK, stats)
+}
+
+// GetRealtimeStats returns real-time statistics for the dashboard
+func (h *StatsHandler) GetRealtimeStats(c *gin.Context) {
+	// Get hours parameter (default 24)
+	hours := 24
+	if hoursStr := c.Query("hours"); hoursStr != "" {
+		if h, err := strconv.Atoi(hoursStr); err == nil && h > 0 && h <= 168 {
+			hours = h
+		}
+	}
+
+	stats, err := h.statsService.GetRealtimeStats(hours)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch statistics",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, stats)
 }

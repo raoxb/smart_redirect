@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -18,18 +19,20 @@ import (
 )
 
 type RedirectHandler struct {
-	linkService *services.LinkService
-	rateLimiter *services.RateLimiter
-	geoIP       *geoip.GeoIP
-	db          *gorm.DB
+	linkService  *services.LinkService
+	rateLimiter  *services.RateLimiter
+	statsService *services.StatsService
+	geoIP        *geoip.GeoIP
+	db           *gorm.DB
 }
 
 func NewRedirectHandler(db *gorm.DB, redis *redis.Client) *RedirectHandler {
 	return &RedirectHandler{
-		linkService: services.NewLinkService(db, redis),
-		rateLimiter: services.NewRateLimiter(redis),
-		geoIP:       geoip.NewGeoIP(),
-		db:          db,
+		linkService:  services.NewLinkService(db, redis),
+		rateLimiter:  services.NewRateLimiter(redis),
+		statsService: services.NewStatsService(db, redis),
+		geoIP:        geoip.NewGeoIP(),
+		db:           db,
 	}
 }
 
@@ -124,9 +127,11 @@ func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 	targetURL.RawQuery = query.Encode()
 	
 	go func() {
+		ctx := context.Background()
 		_ = h.linkService.IncrementHits(link.ID, target.ID)
 		_ = h.rateLimiter.IncrementCap(globalCapKey)
 		_ = h.rateLimiter.RecordIPAccess(clientIP, location.CountryCode)
+		_ = h.statsService.RecordVisit(ctx, link.LinkID, target.ID, clientIP, location.CountryCode)
 		
 		accessLog := &models.AccessLog{
 			LinkID:    link.ID,
