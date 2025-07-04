@@ -1,5 +1,6 @@
 import React from 'react'
-import { Modal, Form, Input, Select, InputNumber } from 'antd'
+import { Modal, Form, Input, Select, InputNumber, Alert } from 'antd'
+import { useNavigate } from 'react-router-dom'
 import { useCreateLink } from '@/hooks/useApi'
 import type { CreateLinkRequest } from '@/types/api'
 
@@ -10,6 +11,7 @@ interface CreateLinkModalProps {
 
 const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ visible, onClose }) => {
   const [form] = Form.useForm()
+  const navigate = useNavigate()
   const createMutation = useCreateLink()
 
   const handleSubmit = async () => {
@@ -22,9 +24,13 @@ const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ visible, onClose }) =
         backup_url: values.backup_url || '',
       }
       
-      await createMutation.mutateAsync(data)
+      const response = await createMutation.mutateAsync(data)
       form.resetFields()
       onClose()
+      // Navigate to the link detail page to add targets
+      if (response.data?.link_id) {
+        navigate(`/links/${response.data.link_id}`)
+      }
     } catch (error) {
       // Error handling is done in the hook
     }
@@ -39,6 +45,12 @@ const CreateLinkModal: React.FC<CreateLinkModalProps> = ({ visible, onClose }) =
       confirmLoading={createMutation.isPending}
       width={600}
     >
+      <Alert
+        message="After creating the link, you'll be redirected to add target URLs"
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />
       <Form
         form={form}
         layout="vertical"

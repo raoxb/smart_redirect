@@ -232,4 +232,5 @@ export const usersApi = {
     api.get(`/users/${userId}/links`),
 }
 
+export { api }
 export default api

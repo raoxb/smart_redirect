@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLinks, useDeleteLink } from '@/hooks/useApi'
 import { formatNumber, formatDate, generateShortUrl, copyToClipboard } from '@/utils/format'
 import CreateLinkModal from './CreateLinkModal'
+import QuickCreateModal from './QuickCreateModal'
 import ImportModal from './ImportModal'
 import type { Link } from '@/types/api'
 
@@ -27,6 +28,7 @@ const LinksPage: React.FC = () => {
   const [searchText, setSearchText] = useState('')
   const [selectedBU, setSelectedBU] = useState<string>()
   const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [quickCreateModalVisible, setQuickCreateModalVisible] = useState(false)
   const [importModalVisible, setImportModalVisible] = useState(false)
   
   const { data, isLoading } = useLinks(page, pageSize)
@@ -253,13 +255,27 @@ const LinksPage: React.FC = () => {
             >
               Export
             </Button>
-            <Button 
-              type="primary" 
+            <Dropdown.Button
+              type="primary"
               icon={<PlusOutlined />}
-              onClick={() => setCreateModalVisible(true)}
+              onClick={() => setQuickCreateModalVisible(true)}
+              menu={{
+                items: [
+                  {
+                    key: 'quick',
+                    label: 'Quick Create (with targets)',
+                    onClick: () => setQuickCreateModalVisible(true),
+                  },
+                  {
+                    key: 'basic',
+                    label: 'Create Link Only',
+                    onClick: () => setCreateModalVisible(true),
+                  },
+                ],
+              }}
             >
-              Create Link
-            </Button>
+              Quick Create
+            </Dropdown.Button>
           </Space>
         </div>
 
@@ -286,6 +302,11 @@ const LinksPage: React.FC = () => {
       <CreateLinkModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
+      />
+
+      <QuickCreateModal
+        visible={quickCreateModalVisible}
+        onClose={() => setQuickCreateModalVisible(false)}
       />
 
       <ImportModal

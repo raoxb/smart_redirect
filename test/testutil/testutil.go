@@ -2,13 +2,14 @@ package testutil
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -61,7 +62,7 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 }
 
 func (ts *TestSuite) TearDown() {
-	ts.Redis.FlushDB(ts.Redis.Context())
+	ts.Redis.FlushDB(context.Background())
 	ts.Redis.Close()
 }
 
