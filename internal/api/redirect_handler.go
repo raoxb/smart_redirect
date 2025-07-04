@@ -78,7 +78,8 @@ func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 	}
 	
 	globalCapKey := fmt.Sprintf("global_cap:link:%d", link.ID)
-	if !h.rateLimiter.CheckGlobalCap(globalCapKey, link.TotalCap) {
+	allowed, err = h.rateLimiter.CheckGlobalCap(globalCapKey, link.TotalCap)
+	if err != nil || !allowed {
 		if link.BackupURL != "" {
 			c.Redirect(http.StatusFound, link.BackupURL)
 			return

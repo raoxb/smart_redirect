@@ -30,9 +30,10 @@ func NewPostgresDB(cfg *config.PostgresConfig) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.ConnMaxLifetime) * time.Second)
 	
-	if err := autoMigrate(db); err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %w", err)
-	}
+	// Skip auto migration - database is already initialized
+	// if err := autoMigrate(db); err != nil {
+	//	return nil, fmt.Errorf("failed to migrate database: %w", err)
+	// }
 	
 	return db, nil
 }
