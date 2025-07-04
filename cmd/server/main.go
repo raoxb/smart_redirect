@@ -50,6 +50,7 @@ func main() {
 	authHandler := api.NewAuthHandler(db, jwtManager)
 	linkHandler := api.NewLinkHandler(db, redisClient)
 	userHandler := api.NewUserHandler(db)
+	statsHandler := api.NewStatsHandler(db, redisClient)
 	
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -58,9 +59,10 @@ func main() {
 		})
 	})
 	
-	router.GET("/v1/:bu/:link_id", redirectHandler.HandleRedirect)
+	router.GET("/v1/:bu/:link_id", middleware.RateLimitMiddleware(redisClient, 1000, time.Hour), redirectHandler.HandleRedirect)
 	
 	apiV1 := router.Group("/api/v1")
+	apiV1.Use(middleware.RateLimitMiddleware(redisClient, 100, time.Hour))
 	{
 		apiV1.POST("/auth/login", authHandler.Login)
 		apiV1.POST("/auth/register", authHandler.Register)
@@ -81,6 +83,10 @@ func main() {
 			authGroup.PUT("/targets/:target_id", linkHandler.UpdateTarget)
 			authGroup.DELETE("/targets/:target_id", linkHandler.DeleteTarget)
 			
+			authGroup.GET("/stats/links/:link_id", statsHandler.GetLinkStats)
+			authGroup.GET("/stats/links/:link_id/hourly", statsHandler.GetHourlyStats)
+			authGroup.GET("/stats/system", statsHandler.GetSystemStats)
+			
 			adminGroup := authGroup.Group("/")
 			adminGroup.Use(middleware.AdminOnly())
 			{
@@ -91,6 +97,10 @@ func main() {
 				adminGroup.DELETE("/users/:id", userHandler.DeleteUser)
 				adminGroup.POST("/users/:id/links", userHandler.AssignLink)
 				adminGroup.GET("/users/:id/links", userHandler.GetUserLinks)
+				
+				adminGroup.GET("/stats/ip/:ip", statsHandler.GetIPInfo)
+				adminGroup.POST("/stats/ip/:ip/block", statsHandler.BlockIP)
+				adminGroup.DELETE("/stats/ip/:ip/block", statsHandler.UnblockIP)
 			}
 		}
 	}

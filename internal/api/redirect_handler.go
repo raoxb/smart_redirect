@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 	
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -13,11 +14,13 @@ import (
 	
 	"github.com/raoxb/smart_redirect/internal/models"
 	"github.com/raoxb/smart_redirect/internal/services"
+	"github.com/raoxb/smart_redirect/pkg/geoip"
 )
 
 type RedirectHandler struct {
 	linkService *services.LinkService
 	rateLimiter *services.RateLimiter
+	geoIP       *geoip.GeoIP
 	db          *gorm.DB
 }
 
@@ -25,6 +28,7 @@ func NewRedirectHandler(db *gorm.DB, redis *redis.Client) *RedirectHandler {
 	return &RedirectHandler{
 		linkService: services.NewLinkService(db, redis),
 		rateLimiter: services.NewRateLimiter(redis),
+		geoIP:       geoip.NewGeoIP(),
 		db:          db,
 	}
 }
@@ -32,6 +36,22 @@ func NewRedirectHandler(db *gorm.DB, redis *redis.Client) *RedirectHandler {
 func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 	bu := c.Param("bu")
 	linkID := c.Param("link_id")
+	clientIP := getClientIP(c)
+	
+	blocked, reason := h.rateLimiter.IsIPBlocked(clientIP)
+	if blocked {
+		c.JSON(http.StatusForbidden, gin.H{"error": "IP blocked", "reason": reason})
+		return
+	}
+	
+	location, err := h.geoIP.GetLocation(clientIP)
+	if err != nil {
+		location = &geoip.LocationInfo{
+			IP:          clientIP,
+			CountryCode: "UNKNOWN",
+			Country:     "Unknown",
+		}
+	}
 	
 	link, err := h.linkService.GetLinkByID(linkID)
 	if err != nil {
@@ -44,7 +64,21 @@ func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 		return
 	}
 	
-	if link.TotalCap > 0 && link.CurrentHits >= link.TotalCap {
+	allowed, err := h.rateLimiter.CheckIPLimit(clientIP, 100, time.Hour)
+	if err != nil || !allowed {
+		go h.rateLimiter.BlockIP(clientIP, "rate limit exceeded", 24*time.Hour)
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
+		return
+	}
+	
+	allowed, err = h.rateLimiter.CheckIPLinkLimit(clientIP, link.ID, 10, 12*time.Hour)
+	if err != nil || !allowed {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "link access limit exceeded"})
+		return
+	}
+	
+	globalCapKey := fmt.Sprintf("global_cap:link:%d", link.ID)
+	if !h.rateLimiter.CheckGlobalCap(globalCapKey, link.TotalCap) {
 		if link.BackupURL != "" {
 			c.Redirect(http.StatusFound, link.BackupURL)
 			return
@@ -53,15 +87,13 @@ func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 		return
 	}
 	
-	clientIP := getClientIP(c)
-	
-	target, err := h.linkService.SelectTarget(link, clientIP)
+	target, err := h.linkService.SelectTarget(link, clientIP, location.CountryCode)
 	if err != nil {
 		if link.BackupURL != "" {
 			c.Redirect(http.StatusFound, link.BackupURL)
 			return
 		}
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no available targets"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
 		return
 	}
 	
@@ -92,6 +124,8 @@ func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 	
 	go func() {
 		_ = h.linkService.IncrementHits(link.ID, target.ID)
+		_ = h.rateLimiter.IncrementCap(globalCapKey)
+		_ = h.rateLimiter.RecordIPAccess(clientIP, location.CountryCode)
 		
 		accessLog := &models.AccessLog{
 			LinkID:    link.ID,
@@ -99,6 +133,7 @@ func (h *RedirectHandler) HandleRedirect(c *gin.Context) {
 			IP:        clientIP,
 			UserAgent: c.GetHeader("User-Agent"),
 			Referer:   c.GetHeader("Referer"),
+			Country:   location.CountryCode,
 		}
 		_ = h.db.Create(accessLog)
 	}()

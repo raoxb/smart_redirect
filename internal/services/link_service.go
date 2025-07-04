@@ -66,7 +66,7 @@ func (s *LinkService) GetLinkByID(linkID string) (*models.Link, error) {
 	return &link, nil
 }
 
-func (s *LinkService) SelectTarget(link *models.Link, ip string) (*models.Target, error) {
+func (s *LinkService) SelectTarget(link *models.Link, ip string, country string) (*models.Target, error) {
 	if len(link.Targets) == 0 {
 		return nil, errors.New("no targets available")
 	}
@@ -84,12 +84,28 @@ func (s *LinkService) SelectTarget(link *models.Link, ip string) (*models.Target
 			continue
 		}
 		
+		if target.Countries != "" && target.Countries != "[]" {
+			var allowedCountries []string
+			if err := json.Unmarshal([]byte(target.Countries), &allowedCountries); err == nil && len(allowedCountries) > 0 {
+				allowed := false
+				for _, allowedCountry := range allowedCountries {
+					if strings.EqualFold(allowedCountry, country) {
+						allowed = true
+						break
+					}
+				}
+				if !allowed {
+					continue
+				}
+			}
+		}
+		
 		activeTargets = append(activeTargets, target)
 		totalWeight += target.Weight
 	}
 	
 	if len(activeTargets) == 0 {
-		return nil, errors.New("all targets reached their caps")
+		return nil, errors.New("no targets available for this country")
 	}
 	
 	ctx := context.Background()
