@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, Upload, Button, Alert, Typography, Table, Tag } from 'antd'
+import { Modal, Upload, Alert, Typography, Table } from 'antd'
 import { InboxOutlined, DownloadOutlined } from '@ant-design/icons'
 import type { UploadProps } from 'antd'
 import { useBatchImport } from '@/hooks/useApi'

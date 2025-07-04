@@ -5,7 +5,7 @@ import {
   DashboardOutlined,
   LinkOutlined,
   BarChartOutlined,
-  TemplateOutlined,
+  FileTextOutlined,
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
@@ -44,7 +44,7 @@ const MainLayout: React.FC = () => {
     },
     {
       key: '/templates',
-      icon: <TemplateOutlined />,
+      icon: <FileTextOutlined />,
       label: 'Templates',
     },
     ...(user?.role === 'admin' ? [

@@ -39,7 +39,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 function App() {
   const { checkAuth } = useAuthStore()
   const { defaultAlgorithm, darkAlgorithm } = theme
-  const [isDarkMode, setIsDarkMode] = React.useState(false)
+  const [isDarkMode] = React.useState(false)
 
   useEffect(() => {
     checkAuth()

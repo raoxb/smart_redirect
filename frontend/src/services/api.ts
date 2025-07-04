@@ -12,8 +12,7 @@ import type {
   LoginResponse,
   CreateLinkRequest,
   CreateTargetRequest,
-  PaginatedResponse,
-  ApiError
+  PaginatedResponse
 } from '@/types/api'
 
 const api = axios.create({

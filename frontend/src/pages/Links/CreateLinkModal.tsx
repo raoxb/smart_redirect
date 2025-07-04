@@ -1,5 +1,5 @@
 import React from 'react'
-import { Modal, Form, Input, Select, InputNumber, Switch } from 'antd'
+import { Modal, Form, Input, Select, InputNumber } from 'antd'
 import { useCreateLink } from '@/hooks/useApi'
 import type { CreateLinkRequest } from '@/types/api'
 

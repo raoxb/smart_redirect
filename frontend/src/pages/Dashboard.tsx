@@ -6,7 +6,6 @@ import {
   GlobalOutlined,
   UserOutlined,
   ArrowUpOutlined,
-  ArrowDownOutlined,
 } from '@ant-design/icons'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useSystemStats, useLinks } from '@/hooks/useApi'
