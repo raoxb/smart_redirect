@@ -17,6 +17,15 @@ Smart Redirect is a high-performance URL shortening and redirection service buil
 - **internal/database**: PostgreSQL and Redis connection management
 - **internal/config**: Configuration management using Viper
 
+### Frontend Structure
+- **frontend/src/pages**: Page components (Dashboard, Links, etc.)
+- **frontend/src/components**: Reusable UI components
+- **frontend/src/services**: API client and service layer
+- **frontend/src/hooks**: Custom React hooks for data fetching
+- **frontend/src/store**: Zustand state management
+- **frontend/src/types**: TypeScript type definitions
+- **frontend/src/utils**: Utility functions and helpers
+
 ### Data Flow
 1. User accesses short URL → Redirect service
 2. Service checks Redis cache → Falls back to PostgreSQL
@@ -26,7 +35,7 @@ Smart Redirect is a high-performance URL shortening and redirection service buil
 
 ## Common Commands
 
-### Development
+### Backend Development
 ```bash
 # Install dependencies
 go mod download
@@ -45,6 +54,27 @@ make test
 
 # Run with hot reload (requires air)
 make dev
+```
+
+### Frontend Development
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
 ```
 
 ### Database

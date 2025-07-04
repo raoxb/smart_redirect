@@ -48,3 +48,29 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# Frontend build files
+frontend/dist-ssr
+frontend/*.local
+
+# Frontend Editor directories
+frontend/.vscode/*
+!frontend/.vscode/extensions.json
+frontend/.idea
+frontend/*.suo
+frontend/*.ntvs*
+frontend/*.njsproj
+frontend/*.sln
+frontend/*.sw?

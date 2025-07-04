@@ -16,7 +16,10 @@ A high-performance URL shortening and redirection service with advanced traffic 
 
 - **Backend**: Go + Gin Framework
 - **Database**: PostgreSQL + Redis
-- **Frontend**: React + Ant Design
+- **Frontend**: React + TypeScript + Ant Design
+- **State Management**: Zustand + React Query
+- **Build Tool**: Vite
+- **Styling**: Ant Design + CSS
 
 ## Project Structure
 
@@ -32,10 +35,20 @@ smart_redirect/
 │   ├── services/       # Business logic
 │   └── utils/          # Utility functions
 ├── pkg/                # Public packages
-│   ├── logger/         # Logging utilities
-│   └── validator/      # Validation utilities
+│   ├── auth/           # JWT authentication
+│   └── geoip/          # IP geolocation
+├── frontend/           # React admin dashboard
+│   ├── src/
+│   │   ├── pages/      # Page components
+│   │   ├── components/ # Reusable components
+│   │   ├── services/   # API services
+│   │   ├── hooks/      # Custom hooks
+│   │   ├── store/      # State management
+│   │   └── utils/      # Utilities
+│   └── public/         # Static assets
 ├── migrations/         # Database migrations
 ├── scripts/           # Build and deployment scripts
+├── test/              # Test suites
 └── docs/             # Documentation
 ```
 
@@ -72,10 +85,21 @@ cp config/example.yaml config/local.yaml
 go run scripts/migrate.go up
 ```
 
-5. Start the server
+5. Start the backend server
 ```bash
 go run cmd/server/main.go
 ```
+
+6. Start the frontend development server
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+7. Access the application
+- Admin Dashboard: http://localhost:3000
+- API: http://localhost:8080
 
 ## License
 
