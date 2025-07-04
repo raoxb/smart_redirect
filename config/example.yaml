@@ -1,0 +1,35 @@
+server:
+  port: 8080
+  mode: debug # debug, release, test
+
+database:
+  postgres:
+    host: localhost
+    port: 5432
+    user: postgres
+    password: postgres
+    dbname: smart_redirect
+    sslmode: disable
+    max_idle_conns: 10
+    max_open_conns: 100
+    conn_max_lifetime: 3600
+
+redis:
+  addr: localhost:6379
+  password: ""
+  db: 0
+  pool_size: 10
+
+security:
+  jwt_secret: your-secret-key-here
+  jwt_expire_hours: 24
+
+rate_limit:
+  ip_limit_per_hour: 100
+  global_daily_cap: 1000000
+
+logging:
+  level: info # debug, info, warn, error
+  format: json # json, text
+  output: stdout # stdout, file
+  file_path: logs/app.log
