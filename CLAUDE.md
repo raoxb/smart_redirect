@@ -74,6 +74,30 @@ git push origin main
 3. **Weighted Random Selection**: Efficient algorithm for traffic distribution
 4. **JSONB for Parameters**: Flexible parameter storage in PostgreSQL
 5. **JWT Authentication**: Stateless auth for admin APIs
+6. **Multi-layer Rate Limiting**: IP-based, link-specific, and global caps
+7. **Geo-targeting**: Country-based target filtering using IP geolocation
+8. **Batch Operations**: Efficient bulk operations for link management
+
+## Advanced Features
+
+### Rate Limiting & Security
+- **IP Rate Limiting**: 100 requests/hour per IP (configurable)
+- **Link-specific Limits**: 10 requests/12h per IP per link
+- **Automatic IP Blocking**: Abuse detection and blocking
+- **Geo-targeting**: Country-based access control
+- **Global Traffic Caps**: Per-link visit limits
+
+### Batch Operations
+- **Bulk Link Creation**: Create multiple links with targets
+- **CSV Import/Export**: Bulk data management via CSV files
+- **Batch Updates**: Update multiple links simultaneously
+- **Template System**: Create reusable link configurations
+
+### Statistics & Monitoring
+- **Real-time Analytics**: Link performance tracking
+- **IP Access Monitoring**: Detailed IP access logs
+- **Hourly Statistics**: Time-based analytics
+- **Country-based Stats**: Geographic traffic analysis
 
 ## Testing Strategy
 

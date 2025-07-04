@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	
+	"github.com/raoxb/smart_redirect/internal/api"
 	"github.com/raoxb/smart_redirect/internal/config"
 	"github.com/raoxb/smart_redirect/internal/models"
 )
@@ -43,5 +44,6 @@ func autoMigrate(db *gorm.DB) error {
 		&models.Target{},
 		&models.LinkPermission{},
 		&models.AccessLog{},
+		&api.LinkTemplate{},
 	)
 }

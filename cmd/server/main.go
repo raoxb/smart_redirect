@@ -51,6 +51,8 @@ func main() {
 	linkHandler := api.NewLinkHandler(db, redisClient)
 	userHandler := api.NewUserHandler(db)
 	statsHandler := api.NewStatsHandler(db, redisClient)
+	batchHandler := api.NewBatchHandler(db, redisClient)
+	templateHandler := api.NewTemplateHandler(db)
 	
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -86,6 +88,19 @@ func main() {
 			authGroup.GET("/stats/links/:link_id", statsHandler.GetLinkStats)
 			authGroup.GET("/stats/links/:link_id/hourly", statsHandler.GetHourlyStats)
 			authGroup.GET("/stats/system", statsHandler.GetSystemStats)
+			
+			authGroup.POST("/batch/links", batchHandler.BatchCreateLinks)
+			authGroup.PUT("/batch/links", batchHandler.BatchUpdateLinks)
+			authGroup.DELETE("/batch/links", batchHandler.BatchDeleteLinks)
+			authGroup.POST("/batch/import", batchHandler.ImportLinksFromCSV)
+			authGroup.GET("/batch/export", batchHandler.ExportLinksToCSV)
+			
+			authGroup.POST("/templates", templateHandler.CreateTemplate)
+			authGroup.GET("/templates", templateHandler.ListTemplates)
+			authGroup.GET("/templates/:id", templateHandler.GetTemplate)
+			authGroup.PUT("/templates/:id", templateHandler.UpdateTemplate)
+			authGroup.DELETE("/templates/:id", templateHandler.DeleteTemplate)
+			authGroup.POST("/templates/create-links", templateHandler.CreateLinksFromTemplate)
 			
 			adminGroup := authGroup.Group("/")
 			adminGroup.Use(middleware.AdminOnly())
