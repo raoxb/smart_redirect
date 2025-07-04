@@ -47,6 +47,9 @@ func main() {
 	
 	redirectHandler := api.NewRedirectHandler(db, redisClient)
 	jwtManager := auth.NewJWTManager(cfg.Security.JWTSecret, cfg.Security.JWTExpireHours)
+	authHandler := api.NewAuthHandler(db, jwtManager)
+	linkHandler := api.NewLinkHandler(db, redisClient)
+	userHandler := api.NewUserHandler(db)
 	
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -59,10 +62,36 @@ func main() {
 	
 	apiV1 := router.Group("/api/v1")
 	{
+		apiV1.POST("/auth/login", authHandler.Login)
+		apiV1.POST("/auth/register", authHandler.Register)
+		
 		authGroup := apiV1.Group("/")
 		authGroup.Use(middleware.AuthMiddleware(jwtManager))
 		{
+			authGroup.GET("/auth/profile", authHandler.GetProfile)
 			
+			authGroup.POST("/links", linkHandler.CreateLink)
+			authGroup.GET("/links", linkHandler.ListLinks)
+			authGroup.GET("/links/:link_id", linkHandler.GetLink)
+			authGroup.PUT("/links/:link_id", linkHandler.UpdateLink)
+			authGroup.DELETE("/links/:link_id", linkHandler.DeleteLink)
+			
+			authGroup.POST("/links/:link_id/targets", linkHandler.CreateTarget)
+			authGroup.GET("/links/:link_id/targets", linkHandler.GetTargets)
+			authGroup.PUT("/targets/:target_id", linkHandler.UpdateTarget)
+			authGroup.DELETE("/targets/:target_id", linkHandler.DeleteTarget)
+			
+			adminGroup := authGroup.Group("/")
+			adminGroup.Use(middleware.AdminOnly())
+			{
+				adminGroup.POST("/users", userHandler.CreateUser)
+				adminGroup.GET("/users", userHandler.ListUsers)
+				adminGroup.GET("/users/:id", userHandler.GetUser)
+				adminGroup.PUT("/users/:id", userHandler.UpdateUser)
+				adminGroup.DELETE("/users/:id", userHandler.DeleteUser)
+				adminGroup.POST("/users/:id/links", userHandler.AssignLink)
+				adminGroup.GET("/users/:id/links", userHandler.GetUserLinks)
+			}
 		}
 	}
 	
