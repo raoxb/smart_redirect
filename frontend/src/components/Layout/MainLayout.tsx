@@ -12,6 +12,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   GlobalOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons'
 import { useAuthStore } from '@/store/authStore'
 
@@ -41,6 +42,11 @@ const MainLayout: React.FC = () => {
       key: '/statistics',
       icon: <BarChartOutlined />,
       label: 'Statistics',
+    },
+    {
+      key: '/access-logs',
+      icon: <FileSearchOutlined />,
+      label: 'Access Logs',
     },
     {
       key: '/templates',

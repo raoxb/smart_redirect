@@ -13,7 +13,11 @@ import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import LinksPage from '@/pages/Links'
 import LinkDetail from '@/pages/Links/LinkDetail'
+import Statistics from '@/pages/Statistics'
+import Templates from '@/pages/Templates'
+import Users from '@/pages/Users'
 import Monitoring from '@/pages/Monitoring'
+import AccessLogs from '@/pages/AccessLogs'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -74,10 +78,11 @@ function App() {
               <Route path="links/:linkId" element={<LinkDetail />} />
               
               {/* Add more routes here */}
-              <Route path="statistics" element={<div>Statistics Page (Coming Soon)</div>} />
-              <Route path="templates" element={<div>Templates Page (Coming Soon)</div>} />
-              <Route path="users" element={<div>Users Page (Coming Soon)</div>} />
+              <Route path="statistics" element={<Statistics />} />
+              <Route path="templates" element={<Templates />} />
+              <Route path="users" element={<Users />} />
               <Route path="monitoring" element={<Monitoring />} />
+              <Route path="access-logs" element={<AccessLogs />} />
               <Route path="profile" element={<div>Profile Page (Coming Soon)</div>} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>

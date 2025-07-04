@@ -77,7 +77,7 @@ func (h *StatsHandler) GetLinkStats(c *gin.Context) {
 	var targets []TargetStats
 	h.db.Model(&models.AccessLog{}).
 		Joins("JOIN targets ON access_logs.target_id = targets.id").
-		Where("link_id = ?", link.ID).
+		Where("access_logs.link_id = ?", link.ID).
 		Select("targets.id as target_id, targets.url, COUNT(*) as hits").
 		Group("targets.id, targets.url").
 		Scan(&targets)
@@ -249,4 +249,73 @@ func (h *StatsHandler) GetRealtimeStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+// GetAccessLogs returns paginated access logs with filtering options
+func (h *StatsHandler) GetAccessLogs(c *gin.Context) {
+	// Parse query parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	linkID := c.Query("link_id")
+	ip := c.Query("ip")
+	country := c.Query("country")
+	
+	// Validate pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	
+	offset := (page - 1) * pageSize
+	
+	// Build query
+	query := h.db.Model(&models.AccessLog{})
+	
+	// Apply filters
+	if linkID != "" {
+		var link models.Link
+		if err := h.db.Where("link_id = ?", linkID).First(&link).Error; err == nil {
+			query = query.Where("access_logs.link_id = ?", link.ID)
+		}
+	}
+	if ip != "" {
+		query = query.Where("ip ILIKE ?", "%"+ip+"%")
+	}
+	if country != "" {
+		query = query.Where("country = ?", country)
+	}
+	
+	// Get total count
+	var total int64
+	query.Count(&total)
+	
+	// Get paginated results
+	var logs []models.AccessLog
+	query.Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&logs)
+	
+	// Manually load associated data
+	for i := range logs {
+		var link models.Link
+		if err := h.db.Where("id = ?", logs[i].LinkID).First(&link).Error; err == nil {
+			logs[i].Link = &link
+		}
+		
+		var target models.Target
+		if err := h.db.Where("id = ?", logs[i].TargetID).First(&target).Error; err == nil {
+			logs[i].Target = &target
+		}
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"data":       logs,
+		"total":      total,
+		"page":       page,
+		"page_size":  pageSize,
+		"total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
+	})
 }

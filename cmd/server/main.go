@@ -91,6 +91,7 @@ func main() {
 			authGroup.GET("/stats/links/:link_id/hourly", statsHandler.GetHourlyStats)
 			authGroup.GET("/stats/system", statsHandler.GetSystemStats)
 			authGroup.GET("/stats/realtime", statsHandler.GetRealtimeStats)
+			authGroup.GET("/stats/access-logs", statsHandler.GetAccessLogs)
 			
 			authGroup.POST("/batch/links", batchHandler.BatchCreateLinks)
 			authGroup.PUT("/batch/links", batchHandler.BatchUpdateLinks)

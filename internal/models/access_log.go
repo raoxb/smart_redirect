@@ -14,6 +14,6 @@ type AccessLog struct {
 	Country    string    `gorm:"size:2" json:"country"`
 	CreatedAt  time.Time `gorm:"index" json:"created_at"`
 	
-	Link   *Link   `gorm:"foreignKey:LinkID" json:"link,omitempty"`
-	Target *Target `gorm:"foreignKey:TargetID" json:"target,omitempty"`
+	Link   *Link   `gorm:"foreignKey:LinkID;references:ID" json:"link,omitempty"`
+	Target *Target `gorm:"foreignKey:TargetID;references:ID" json:"target,omitempty"`
 }
