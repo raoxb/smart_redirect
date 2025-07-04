@@ -12,8 +12,11 @@ import (
 	"time"
 	
 	"github.com/gin-gonic/gin"
+	"github.com/raoxb/smart_redirect/internal/api"
 	"github.com/raoxb/smart_redirect/internal/config"
 	"github.com/raoxb/smart_redirect/internal/database"
+	"github.com/raoxb/smart_redirect/internal/middleware"
+	"github.com/raoxb/smart_redirect/pkg/auth"
 )
 
 func main() {
@@ -42,12 +45,26 @@ func main() {
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	
+	redirectHandler := api.NewRedirectHandler(db, redisClient)
+	jwtManager := auth.NewJWTManager(cfg.Security.JWTSecret, cfg.Security.JWTExpireHours)
+	
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
 			"time":   time.Now().Unix(),
 		})
 	})
+	
+	router.GET("/v1/:bu/:link_id", redirectHandler.HandleRedirect)
+	
+	apiV1 := router.Group("/api/v1")
+	{
+		authGroup := apiV1.Group("/")
+		authGroup.Use(middleware.AuthMiddleware(jwtManager))
+		{
+			
+		}
+	}
 	
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
