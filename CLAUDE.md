@@ -101,7 +101,44 @@ git push origin main
 
 ## Testing Strategy
 
-1. Unit tests for business logic in services layer
-2. Integration tests for API endpoints
-3. Load testing for redirect performance
-4. Mock Redis/PostgreSQL for isolated testing
+### Test Structure
+- **Unit Tests**: `/test/unit/` - Business logic testing with mocks
+- **Integration Tests**: `/test/integration/` - End-to-end API testing
+- **Fixtures**: `/test/fixtures/` - Test data and helpers
+- **Test Utils**: `/test/testutil/` - Shared testing utilities
+
+### Running Tests
+```bash
+# Run all tests
+make test-all
+
+# Run specific test types
+make test-unit
+make test-integration
+
+# Run with coverage
+make test-coverage
+
+# Run load tests
+make test-load
+
+# Run benchmarks
+make bench
+```
+
+### Test Configuration
+- Test database: SQLite in-memory or PostgreSQL test DB
+- Redis test DB: Database 1 (separate from main)
+- JWT secret: `test-secret-key-for-testing`
+- Reduced rate limits for faster testing
+
+### Coverage Targets
+- Overall coverage: >80%
+- Critical paths (redirect logic): >90%
+- Error handling: >85%
+
+### Continuous Integration
+Tests run automatically on:
+- Pull request creation
+- Merge to main branch
+- Release tag creation

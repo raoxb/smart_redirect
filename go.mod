@@ -9,7 +9,9 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/lib/pq v1.10.9
 	github.com/spf13/viper v1.18.2
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v1.18.0
 	gorm.io/driver/postgres v1.5.4
+	gorm.io/driver/sqlite v1.5.4
 	gorm.io/gorm v1.25.5
 )

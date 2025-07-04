@@ -21,6 +21,26 @@ test-coverage:
 	go test -v -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
+# Run unit tests only
+test-unit:
+	go test -v ./test/unit/...
+
+# Run integration tests only
+test-integration:
+	go test -v ./test/integration/...
+
+# Run all tests with detailed reporting
+test-all:
+	./scripts/run_tests.sh
+
+# Run tests with load testing
+test-load:
+	./scripts/run_tests.sh --load-tests
+
+# Run benchmark tests
+bench:
+	go test -bench=. -benchmem ./...
+
 # Clean build artifacts
 clean:
 	rm -f $(BINARY_NAME)
