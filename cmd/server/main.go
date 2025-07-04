@@ -16,6 +16,7 @@ import (
 	"github.com/raoxb/smart_redirect/internal/config"
 	"github.com/raoxb/smart_redirect/internal/database"
 	"github.com/raoxb/smart_redirect/internal/middleware"
+	"github.com/raoxb/smart_redirect/internal/services"
 	"github.com/raoxb/smart_redirect/pkg/auth"
 )
 
@@ -53,6 +54,7 @@ func main() {
 	statsHandler := api.NewStatsHandler(db, redisClient)
 	batchHandler := api.NewBatchHandler(db, redisClient)
 	templateHandler := api.NewTemplateHandler(db)
+	monitorHandler := api.NewMonitorHandler(db, redisClient)
 	
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -117,9 +119,22 @@ func main() {
 				adminGroup.GET("/stats/ip/:ip", statsHandler.GetIPInfo)
 				adminGroup.POST("/stats/ip/:ip/block", statsHandler.BlockIP)
 				adminGroup.DELETE("/stats/ip/:ip/block", statsHandler.UnblockIP)
+				
+				adminGroup.GET("/monitor/alerts", monitorHandler.GetActiveAlerts)
+				adminGroup.POST("/monitor/alerts/:id/acknowledge", monitorHandler.AcknowledgeAlert)
+				adminGroup.POST("/monitor/alerts/:id/resolve", monitorHandler.ResolveAlert)
+				adminGroup.GET("/monitor/config", monitorHandler.GetMonitoringConfig)
+				adminGroup.PUT("/monitor/config", monitorHandler.UpdateMonitoringConfig)
+				adminGroup.GET("/monitor/health", monitorHandler.GetHealthStatus)
 			}
 		}
 	}
+	
+	// Start monitoring service
+	monitorService := services.NewMonitorService(db, redisClient)
+	monitorCtx, cancelMonitor := context.WithCancel(context.Background())
+	go monitorService.StartMonitoring(monitorCtx)
+	log.Println("Monitoring service started")
 	
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.Port),
@@ -138,6 +153,9 @@ func main() {
 	<-quit
 	
 	log.Println("Shutting down server...")
+	
+	// Stop monitoring service
+	cancelMonitor()
 	
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

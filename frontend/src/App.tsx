@@ -13,6 +13,7 @@ import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import LinksPage from '@/pages/Links'
 import LinkDetail from '@/pages/Links/LinkDetail'
+import Monitoring from '@/pages/Monitoring'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -76,7 +77,7 @@ function App() {
               <Route path="statistics" element={<div>Statistics Page (Coming Soon)</div>} />
               <Route path="templates" element={<div>Templates Page (Coming Soon)</div>} />
               <Route path="users" element={<div>Users Page (Coming Soon)</div>} />
-              <Route path="monitoring" element={<div>Monitoring Page (Coming Soon)</div>} />
+              <Route path="monitoring" element={<Monitoring />} />
               <Route path="profile" element={<div>Profile Page (Coming Soon)</div>} />
               <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
             </Route>
