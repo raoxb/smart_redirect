@@ -75,3 +75,4 @@ frontend/*.ntvs*
 frontend/*.njsproj
 frontend/*.sln
 frontend/*.sw?
+stress_test_results_*.json
