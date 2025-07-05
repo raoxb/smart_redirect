@@ -1,0 +1,63 @@
+server:
+  port: 8080
+  mode: release
+
+database:
+  postgres:
+    host: postgres
+    port: 5432
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    dbname: ${POSTGRES_DB}
+    sslmode: disable
+    max_connections: 25
+    max_idle_connections: 5
+    connection_lifetime: "5m"
+
+redis:
+  addr: redis:6379
+  password: ${REDIS_PASSWORD}
+  db: 0
+  max_retries: 3
+  pool_size: 10
+
+security:
+  jwt_secret: ${JWT_SECRET}
+  jwt_expire_hours: 24
+
+geoip:
+  maxmind_key: ${MAXMIND_KEY}
+  db_path: "./geoip/GeoLite2-City.mmdb"
+
+logging:
+  level: info
+  format: json
+  output: "./logs/app.log"
+  max_size: 100  # MB
+  max_backups: 7
+  max_age: 30   # days
+
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  health_check_interval: "30s"
+
+rate_limiting:
+  redis_key_prefix: "rate_limit"
+  cleanup_interval: "1h"
+
+cors:
+  allowed_origins:
+    - "https://yourdomain.com"
+    - "https://admin.yourdomain.com"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowed_headers:
+    - "Origin"
+    - "Content-Type"
+    - "Authorization"
+  max_age: 86400

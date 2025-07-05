@@ -1,497 +1,557 @@
 # Smart Redirect Deployment Guide
 
-This guide covers various deployment options for the Smart Redirect service.
+This guide provides comprehensive instructions for deploying Smart Redirect in different environments.
 
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)
-- [Docker Deployment](#docker-deployment)
-- [Kubernetes Deployment](#kubernetes-deployment)
-- [Manual Deployment](#manual-deployment)
-- [Environment Configuration](#environment-configuration)
-- [Performance Tuning](#performance-tuning)
-- [Monitoring](#monitoring)
-- [Troubleshooting](#troubleshooting)
+1. [Quick Start](#quick-start)
+2. [Environment Setup](#environment-setup)
+3. [Development Deployment](#development-deployment)
+4. [Production Deployment](#production-deployment)
+5. [Monitoring Setup](#monitoring-setup)
+6. [SSL Configuration](#ssl-configuration)
+7. [Backup and Recovery](#backup-and-recovery)
+8. [Troubleshooting](#troubleshooting)
 
-## Prerequisites
+## Quick Start
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Git
+- OpenSSL (for SSL certificates)
+- Python 3.7+ (for testing scripts)
+
+### Clone and Setup
+
+```bash
+git clone https://github.com/raoxb/smart_redirect.git
+cd smart_redirect
+```
+
+### Development Deployment
+
+```bash
+# Start development environment
+./scripts/deploy.sh dev start
+
+# Initialize database
+./scripts/deploy.sh dev init-db
+
+# Check service status
+./scripts/deploy.sh dev status
+```
+
+### Production Deployment
+
+```bash
+# Setup environment files
+cp .env.example .env.prod
+# Edit .env.prod with production values
+
+# Generate SSL certificates
+./scripts/ssl.sh yourdomain.com prod
+
+# Start production environment
+./scripts/deploy.sh prod start
+
+# Initialize database
+./scripts/deploy.sh prod init-db
+```
+
+## Environment Setup
+
+### Environment Files
+
+Create environment-specific configuration files:
+
+**`.env.dev`** (Development)
+```env
+# Database Configuration
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=smart_redirect
+DB_USER=postgres
+DB_PASSWORD=dev_password
+
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=dev_redis_password
+
+# JWT Configuration
+JWT_SECRET=dev_jwt_secret_change_in_production
+
+# Server Configuration
+SERVER_PORT=8080
+SERVER_HOST=0.0.0.0
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=3600
+
+# Logging
+LOG_LEVEL=debug
+LOG_FORMAT=text
+```
+
+**`.env.prod`** (Production)
+```env
+# Database Configuration
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=smart_redirect
+DB_USER=postgres
+DB_PASSWORD=your_secure_password_here
+
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password_here
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here_change_this_in_production
+
+# Server Configuration
+SERVER_PORT=8080
+SERVER_HOST=0.0.0.0
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS=1000
+RATE_LIMIT_WINDOW=3600
+
+# Logging
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+### Directory Structure
+
+```
+smart_redirect/
+├── config/
+│   ├── local.yaml
+│   ├── dev.yaml
+│   └── production.yaml
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
+├── docker-compose.monitoring.yml
+├── scripts/
+│   ├── deploy.sh
+│   ├── backup.sh
+│   └── ssl.sh
+├── monitoring/
+│   ├── prometheus/
+│   ├── grafana/
+│   ├── loki/
+│   └── alertmanager/
+├── nginx/
+│   └── nginx.prod.conf
+└── ssl/
+    ├── cert.pem
+    ├── key.pem
+    └── ca-bundle.pem
+```
+
+## Development Deployment
+
+### Using Docker Compose
+
+```bash
+# Start all services
+docker-compose -f docker-compose.dev.yml up -d
+
+# View logs
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Stop services
+docker-compose -f docker-compose.dev.yml down
+```
+
+### Using Deployment Script
+
+```bash
+# Start development environment
+./scripts/deploy.sh dev start
+
+# View logs
+./scripts/deploy.sh dev logs
+
+# Check status
+./scripts/deploy.sh dev status
+
+# Stop services
+./scripts/deploy.sh dev stop
+```
+
+### Development Services
+
+- **Backend**: http://localhost:8080
+- **Frontend**: http://localhost:3000
+- **Database**: localhost:5432
+- **Redis**: localhost:6379
+
+### Hot Reload
+
+The development environment includes hot reload for both frontend and backend:
+
+- Frontend: Vite dev server with HMR
+- Backend: Air for Go hot reload
+
+## Production Deployment
 
 ### System Requirements
 
-- **CPU**: 2+ cores recommended
-- **Memory**: 4GB+ RAM recommended
-- **Storage**: 20GB+ available space
-- **Network**: Stable internet connection for geolocation services
+- **CPU**: 2+ cores
+- **RAM**: 4GB minimum, 8GB recommended
+- **Storage**: 50GB+ SSD
+- **Network**: 100Mbps+ bandwidth
 
-### Software Dependencies
+### Production Services
 
-- Docker 20.10+ and Docker Compose 2.0+
-- PostgreSQL 14+ (if not using Docker)
-- Redis 6+ (if not using Docker)
-- Go 1.21+ (for manual deployment)
+- **Application**: Smart Redirect backend
+- **Database**: PostgreSQL with connection pooling
+- **Cache**: Redis with persistence
+- **Proxy**: Nginx with SSL termination
+- **Monitoring**: Prometheus, Grafana, Loki
 
-## Docker Deployment
+### Deployment Steps
 
-### Quick Start
-
-1. **Clone the repository**:
+1. **Prepare Environment**
    ```bash
-   git clone git@github.com:raoxb/smart_redirect.git
-   cd smart_redirect
+   # Create production environment file
+   cp .env.example .env.prod
+   vim .env.prod
    ```
 
-2. **Configure environment**:
+2. **Generate SSL Certificates**
    ```bash
-   cp config/example.yaml config/docker.yaml
-   # Edit config/docker.yaml with your settings
+   # For development (self-signed)
+   ./scripts/ssl.sh localhost dev
+   
+   # For production (Let's Encrypt recommended)
+   ./scripts/ssl.sh yourdomain.com prod
    ```
 
-3. **Start services**:
+3. **Start Services**
    ```bash
-   docker-compose up -d
+   ./scripts/deploy.sh prod start
    ```
 
-4. **Initialize admin user**:
+4. **Initialize Database**
    ```bash
-   docker-compose exec app ./smart_redirect -config=config/local.yaml
-   # Run: go run scripts/init_db.go -config=config/docker.yaml
+   ./scripts/deploy.sh prod init-db
    ```
 
-5. **Verify deployment**:
+5. **Verify Deployment**
    ```bash
-   curl http://localhost:8080/health
+   ./scripts/deploy.sh prod health
    ```
 
-### Production Docker Setup
+### Production URLs
 
-1. **Set production environment variables**:
-   ```bash
-   export JWT_SECRET="your-super-secure-jwt-secret-key"
-   export POSTGRES_PASSWORD="secure-database-password"
-   ```
+- **Application**: https://yourdomain.com
+- **Admin Panel**: https://yourdomain.com/admin
+- **Health Check**: https://yourdomain.com/health
 
-2. **Use production compose file**:
-   ```bash
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
+## Monitoring Setup
 
-3. **Configure SSL (recommended)**:
-   - Place SSL certificates in `nginx/ssl/`
-   - Uncomment SSL configuration in `nginx/nginx.conf`
-   - Restart nginx: `docker-compose restart nginx`
-
-## Kubernetes Deployment
-
-### 1. Create Namespace
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: smart-redirect
-```
-
-### 2. PostgreSQL Deployment
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: smart-redirect
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-      - name: postgres
-        image: postgres:15-alpine
-        env:
-        - name: POSTGRES_DB
-          value: "smart_redirect"
-        - name: POSTGRES_USER
-          value: "postgres"
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: password
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: postgres-storage
-          mountPath: /var/lib/postgresql/data
-      volumes:
-      - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: postgres-pvc
-```
-
-### 3. Redis Deployment
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: redis
-  namespace: smart-redirect
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redis
-  template:
-    metadata:
-      labels:
-        app: redis
-    spec:
-      containers:
-      - name: redis
-        image: redis:7-alpine
-        ports:
-        - containerPort: 6379
-```
-
-### 4. Smart Redirect Application
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: smart-redirect-app
-  namespace: smart-redirect
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: smart-redirect-app
-  template:
-    metadata:
-      labels:
-        app: smart-redirect-app
-    spec:
-      containers:
-      - name: app
-        image: smart-redirect:latest
-        ports:
-        - containerPort: 8080
-        env:
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: app-secret
-              key: jwt-secret
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
-```
-
-## Manual Deployment
-
-### 1. Install Dependencies
+### Start Monitoring Stack
 
 ```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install postgresql redis-server golang-go
+# Start monitoring services
+docker-compose -f docker-compose.monitoring.yml up -d
 
-# CentOS/RHEL
-sudo yum install postgresql-server redis golang
-
-# Start services
-sudo systemctl start postgresql redis
-sudo systemctl enable postgresql redis
+# Check monitoring status
+docker-compose -f docker-compose.monitoring.yml ps
 ```
 
-### 2. Database Setup
+### Monitoring Services
+
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3001 (admin/admin)
+- **Alertmanager**: http://localhost:9093
+- **Loki**: http://localhost:3100
+
+### Metrics Endpoints
+
+- **Application Metrics**: http://localhost:8080/metrics
+- **Node Metrics**: http://localhost:9100/metrics
+- **Redis Metrics**: http://localhost:9121/metrics
+- **PostgreSQL Metrics**: http://localhost:9187/metrics
+
+### Grafana Dashboards
+
+Import these dashboard IDs for monitoring:
+
+- **Go Application**: 10826
+- **PostgreSQL**: 9628
+- **Redis**: 763
+- **Nginx**: 12559
+- **Node Exporter**: 1860
+
+### Alerting Configuration
+
+Alerts are configured for:
+
+- High response time (>500ms)
+- High error rate (>10%)
+- Database/Redis connection issues
+- High CPU/Memory usage
+- Disk space usage
+- Application downtime
+
+## SSL Configuration
+
+### Development SSL
 
 ```bash
-# Create database
-sudo -u postgres createdb smart_redirect
-sudo -u postgres createuser smart_redirect_user
-
-# Set password
-sudo -u postgres psql -c "ALTER USER smart_redirect_user PASSWORD 'your_password';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE smart_redirect TO smart_redirect_user;"
+# Generate self-signed certificate
+./scripts/ssl.sh localhost dev
 ```
 
-### 3. Build and Deploy Application
+### Production SSL
+
+For production, use Let's Encrypt:
 
 ```bash
-# Clone and build
-git clone git@github.com:raoxb/smart_redirect.git
-cd smart_redirect
+# Install certbot
+sudo apt-get install certbot python3-certbot-nginx
 
-# Install dependencies
-go mod download
+# Generate certificate
+sudo certbot certonly --standalone -d yourdomain.com
 
-# Build application
-make build
+# Copy certificates
+sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem ./ssl/cert.pem
+sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem ./ssl/key.pem
+sudo cp /etc/letsencrypt/live/yourdomain.com/chain.pem ./ssl/ca-bundle.pem
 
-# Copy configuration
-cp config/example.yaml config/production.yaml
-# Edit config/production.yaml with your settings
-
-# Create systemd service
-sudo tee /etc/systemd/system/smart-redirect.service > /dev/null <<EOF
-[Unit]
-Description=Smart Redirect Service
-After=network.target postgresql.service redis.service
-
-[Service]
-Type=simple
-User=smartredirect
-WorkingDirectory=/opt/smart-redirect
-ExecStart=/opt/smart-redirect/smart_redirect -config=config/production.yaml
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Create user and setup directories
-sudo useradd -r -s /bin/false smartredirect
-sudo mkdir -p /opt/smart-redirect
-sudo cp smart_redirect config/ /opt/smart-redirect/
-sudo chown -R smartredirect:smartredirect /opt/smart-redirect
-
-# Enable and start service
-sudo systemctl enable smart-redirect
-sudo systemctl start smart-redirect
+# Set up auto-renewal
+sudo crontab -e
+# Add: 0 12 * * * /usr/bin/certbot renew --quiet
 ```
 
-## Environment Configuration
+### SSL Security Features
 
-### Required Environment Variables
+- TLS 1.2 and 1.3 support
+- Strong cipher suites
+- OCSP stapling
+- HSTS headers
+- Security headers (CSP, X-Frame-Options, etc.)
+
+## Backup and Recovery
+
+### Automated Backups
 
 ```bash
-# JWT Configuration
-JWT_SECRET="your-super-secure-secret-key"
+# Create backup
+./scripts/backup.sh prod
 
-# Database Configuration  
-DB_HOST="localhost"
-DB_PORT="5432"
-DB_USER="postgres"
-DB_PASSWORD="your-db-password"
-DB_NAME="smart_redirect"
-
-# Redis Configuration
-REDIS_ADDR="localhost:6379"
-REDIS_PASSWORD=""
-
-# Application Configuration
-GIN_MODE="release"
-SERVER_PORT="8080"
+# Backups are stored in ./backups/ directory
 ```
 
-### Configuration File Structure
-
-```yaml
-server:
-  port: 8080
-  mode: release
-
-database:
-  postgres:
-    host: ${DB_HOST:-localhost}
-    port: ${DB_PORT:-5432}
-    user: ${DB_USER:-postgres}
-    password: ${DB_PASSWORD}
-    dbname: ${DB_NAME:-smart_redirect}
-    sslmode: disable
-
-redis:
-  addr: ${REDIS_ADDR:-localhost:6379}
-  password: ${REDIS_PASSWORD:-""}
-  db: 0
-
-security:
-  jwt_secret: ${JWT_SECRET}
-  jwt_expire_hours: 24
-
-rate_limit:
-  ip_limit_per_hour: 1000
-  global_daily_cap: 10000000
-```
-
-## Performance Tuning
-
-### Database Optimization
-
-```sql
--- PostgreSQL optimizations
-ALTER SYSTEM SET shared_buffers = '256MB';
-ALTER SYSTEM SET effective_cache_size = '1GB';
-ALTER SYSTEM SET maintenance_work_mem = '64MB';
-ALTER SYSTEM SET wal_buffers = '16MB';
-ALTER SYSTEM SET checkpoint_completion_target = 0.9;
-
--- Reload configuration
-SELECT pg_reload_conf();
-
--- Create indexes for better performance
-CREATE INDEX CONCURRENTLY idx_access_logs_created_at ON access_logs(created_at);
-CREATE INDEX CONCURRENTLY idx_access_logs_ip ON access_logs(ip);
-CREATE INDEX CONCURRENTLY idx_links_link_id ON links(link_id);
-```
-
-### Redis Configuration
-
-```conf
-# /etc/redis/redis.conf
-maxmemory 512mb
-maxmemory-policy allkeys-lru
-save 900 1
-save 300 10
-save 60 10000
-```
-
-### Application Tuning
-
-```yaml
-# config/production.yaml
-database:
-  postgres:
-    max_idle_conns: 25
-    max_open_conns: 100
-    conn_max_lifetime: 3600
-
-redis:
-  pool_size: 50
-
-rate_limit:
-  ip_limit_per_hour: 5000
-  redirect_limit_per_hour: 10000
-```
-
-## Monitoring
-
-### Health Checks
+### Manual Backup
 
 ```bash
-# Application health
-curl http://localhost:8080/health
+# Database backup
+docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres smart_redirect > backup.sql
 
-# Database health
-psql -h localhost -U postgres -c "SELECT 1;"
-
-# Redis health
-redis-cli ping
+# Redis backup
+docker-compose -f docker-compose.prod.yml exec redis redis-cli BGSAVE
 ```
 
-### Metrics Collection
-
-1. **Prometheus Configuration**:
-```yaml
-# prometheus.yml
-scrape_configs:
-  - job_name: 'smart-redirect'
-    static_configs:
-      - targets: ['localhost:8080']
-    metrics_path: '/metrics'
-```
-
-2. **Grafana Dashboard**: Import the dashboard from `docs/grafana-dashboard.json`
-
-### Log Monitoring
+### Recovery
 
 ```bash
-# Application logs
-tail -f /var/log/smart-redirect/app.log
+# Restore database
+docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres smart_redirect < backup.sql
 
-# Docker logs
-docker-compose logs -f app
+# Restore Redis
+docker cp backup.rdb $(docker-compose -f docker-compose.prod.yml ps -q redis):/data/dump.rdb
+docker-compose -f docker-compose.prod.yml restart redis
+```
 
-# Kubernetes logs
-kubectl logs -f deployment/smart-redirect-app -n smart-redirect
+### Backup Schedule
+
+Set up automated backups with cron:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add backup job (daily at 2 AM)
+0 2 * * * /path/to/smart_redirect/scripts/backup.sh prod
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Database Connection Failed**:
-   ```bash
-   # Check PostgreSQL status
-   sudo systemctl status postgresql
-   
-   # Check connectivity
-   telnet postgres-host 5432
-   
-   # Verify credentials
-   psql -h host -U user -d database
-   ```
+**Service Won't Start**
+```bash
+# Check logs
+./scripts/deploy.sh [env] logs
 
-2. **Redis Connection Failed**:
-   ```bash
-   # Check Redis status
-   sudo systemctl status redis
-   
-   # Test connection
-   redis-cli -h redis-host ping
-   ```
+# Check status
+./scripts/deploy.sh [env] status
 
-3. **High Memory Usage**:
-   ```bash
-   # Check Redis memory
-   redis-cli info memory
-   
-   # Clear Redis cache if needed
-   redis-cli flushdb
-   ```
+# Check health
+./scripts/deploy.sh [env] health
+```
 
-4. **Rate Limiting Issues**:
-   ```bash
-   # Check rate limit counters
-   redis-cli keys "rate_limit:*"
-   
-   # Clear rate limits for IP
-   redis-cli del "rate_limit:ip:192.168.1.1"
-   ```
+**Database Connection Issues**
+```bash
+# Check database logs
+docker-compose -f docker-compose.[env].yml logs postgres
 
-### Performance Issues
+# Test connection
+docker-compose -f docker-compose.[env].yml exec postgres pg_isready -U postgres
+```
 
-1. **Slow Redirects**:
-   - Check database indexes
-   - Monitor Redis hit ratio
-   - Analyze slow query logs
+**Redis Connection Issues**
+```bash
+# Check Redis logs
+docker-compose -f docker-compose.[env].yml logs redis
 
-2. **High CPU Usage**:
-   - Review rate limiting settings
-   - Check for inefficient queries
-   - Monitor goroutine count
+# Test connection
+docker-compose -f docker-compose.[env].yml exec redis redis-cli ping
+```
 
-3. **Memory Leaks**:
-   - Enable pprof profiling
-   - Monitor heap growth
-   - Check for unclosed connections
+**SSL Certificate Issues**
+```bash
+# Check certificate
+openssl x509 -in ssl/cert.pem -text -noout
 
-### Recovery Procedures
+# Verify certificate chain
+openssl verify -CAfile ssl/ca-bundle.pem ssl/cert.pem
+```
 
-1. **Database Recovery**:
-   ```bash
-   # Restore from backup
-   pg_restore -h localhost -U postgres -d smart_redirect backup.sql
-   
-   # Rebuild indexes
-   REINDEX DATABASE smart_redirect;
-   ```
+### Performance Tuning
 
-2. **Cache Warming**:
-   ```bash
-   # Warm up cache after Redis restart
-   curl -X POST http://localhost:8080/api/v1/admin/cache/warm
-   ```
+**Database Performance**
+```yaml
+# In docker-compose.prod.yml, add to postgres environment:
+POSTGRES_SHARED_BUFFERS: 256MB
+POSTGRES_EFFECTIVE_CACHE_SIZE: 1GB
+POSTGRES_WORK_MEM: 4MB
+```
 
-For additional support, check the logs and refer to the application metrics for detailed diagnostics.
+**Redis Performance**
+```yaml
+# In docker-compose.prod.yml, add to redis command:
+- --maxmemory 512mb
+- --maxmemory-policy allkeys-lru
+```
+
+**Nginx Performance**
+```nginx
+# In nginx.prod.conf, add to http block:
+worker_processes auto;
+worker_connections 2048;
+keepalive_requests 1000;
+```
+
+### Log Analysis
+
+**Application Logs**
+```bash
+# View application logs
+docker-compose logs smart_redirect
+
+# Filter by level
+docker-compose logs smart_redirect | grep ERROR
+```
+
+**Access Logs**
+```bash
+# View Nginx access logs
+docker-compose exec nginx tail -f /var/log/nginx/access.log
+
+# Analyze traffic patterns
+docker-compose exec nginx awk '{print $1}' /var/log/nginx/access.log | sort | uniq -c | sort -nr | head -10
+```
+
+### Health Checks
+
+**Application Health**
+```bash
+curl -s http://localhost:8080/health | jq .
+```
+
+**Database Health**
+```bash
+docker-compose exec postgres pg_isready -U postgres
+```
+
+**Redis Health**
+```bash
+docker-compose exec redis redis-cli ping
+```
+
+## Security Considerations
+
+### Network Security
+
+- Use internal Docker networks
+- Expose only necessary ports
+- Implement proper firewall rules
+- Use strong passwords and secrets
+
+### Application Security
+
+- Keep dependencies updated
+- Use secure JWT secrets
+- Implement rate limiting
+- Monitor for suspicious activity
+
+### Data Security
+
+- Encrypt sensitive data at rest
+- Use encrypted connections (SSL/TLS)
+- Regular security audits
+- Proper backup encryption
+
+## Maintenance
+
+### Regular Tasks
+
+- **Daily**: Check service health and logs
+- **Weekly**: Review monitoring alerts and metrics
+- **Monthly**: Update dependencies and security patches
+- **Quarterly**: Review and update SSL certificates
+
+### Updates
+
+```bash
+# Update application
+git pull origin main
+docker-compose build --no-cache
+./scripts/deploy.sh [env] restart
+
+# Update monitoring
+docker-compose -f docker-compose.monitoring.yml pull
+docker-compose -f docker-compose.monitoring.yml up -d
+```
+
+### Scaling
+
+For high traffic, consider:
+
+- Multiple backend instances
+- Database read replicas
+- CDN integration
+- Load balancing
+- Horizontal scaling with Kubernetes
+
+## Support
+
+For issues and questions:
+
+- Check the troubleshooting section
+- Review application logs
+- Open an issue on GitHub
+- Contact the development team
+
+---
+
+This deployment guide provides comprehensive instructions for deploying Smart Redirect in various environments. Follow the appropriate sections based on your deployment needs.

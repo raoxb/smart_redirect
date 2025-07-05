@@ -1,0 +1,39 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@yourdomain.com'
+  smtp_auth_username: 'alertmanager@yourdomain.com'
+  smtp_auth_password: 'your-email-password'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+
+receivers:
+  - name: 'web.hook'
+    email_configs:
+      - to: 'admin@yourdomain.com'
+        subject: 'Smart Redirect Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Status: {{ .Status }}
+          Labels: {{ .Labels }}
+          {{ end }}
+    
+    # Slack webhook configuration (optional)
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts'
+        title: 'Smart Redirect Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']
