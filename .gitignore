@@ -17,6 +17,7 @@ vendor/
 # Go workspace file
 go.work
 
+data/
 # Build output
 /smart_redirect
 /cmd/server/server
