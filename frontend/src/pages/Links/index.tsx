@@ -2,11 +2,9 @@ import React, { useState } from 'react'
 import { Card, Table, Button, Space, Tag, Input, Select, Modal, message, Dropdown } from 'antd'
 import {
   PlusOutlined,
-  EditOutlined,
   DeleteOutlined,
   CopyOutlined,
   EyeOutlined,
-  MoreOutlined,
   SearchOutlined,
   DownloadOutlined,
   UploadOutlined,
@@ -47,8 +45,8 @@ const LinksPage: React.FC = () => {
   }
 
   const handleCopyUrl = async (link: Link) => {
-    const url = generateShortUrl(link.business_unit, link.link_id, link.network)
-    const success = await copyToClipboard(`https://${url}`)
+    const url = generateShortUrl(link.business_unit, link.link_id)
+    const success = await copyToClipboard(url)
     if (success) {
       message.success('URL copied to clipboard!')
     } else {
@@ -67,16 +65,25 @@ const LinksPage: React.FC = () => {
       dataIndex: 'link_id',
       key: 'link_id',
       fixed: 'left' as const,
-      width: 120,
-      render: (linkId: string) => (
-        <code style={{ 
-          background: '#f6f8fa', 
-          padding: '2px 6px', 
-          borderRadius: '4px',
-          fontSize: '12px'
-        }}>
-          {linkId}
-        </code>
+      width: 160,
+      render: (linkId: string, record: Link) => (
+        <Space>
+          <code style={{ 
+            background: '#f6f8fa', 
+            padding: '2px 6px', 
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}>
+            {linkId}
+          </code>
+          <Button
+            type="text"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => handleCopyUrl(record)}
+            title="Copy URL"
+          />
+        </Space>
       ),
     },
     {
@@ -165,45 +172,26 @@ const LinksPage: React.FC = () => {
       title: 'Actions',
       key: 'actions',
       fixed: 'right' as const,
-      width: 120,
-      render: (_: any, record: Link) => {
-        const menuItems = [
-          {
-            key: 'view',
-            icon: <EyeOutlined />,
-            label: 'View Details',
-            onClick: () => navigate(`/links/${record.link_id}`),
-          },
-          {
-            key: 'edit',
-            icon: <EditOutlined />,
-            label: 'Edit',
-            onClick: () => navigate(`/links/${record.link_id}/edit`),
-          },
-          {
-            key: 'copy',
-            icon: <CopyOutlined />,
-            label: 'Copy URL',
-            onClick: () => handleCopyUrl(record),
-          },
-          {
-            type: 'divider' as const,
-          },
-          {
-            key: 'delete',
-            icon: <DeleteOutlined />,
-            label: 'Delete',
-            danger: true,
-            onClick: () => handleDelete(record.link_id),
-          },
-        ]
-
-        return (
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button type="text" icon={<MoreOutlined />} />
-          </Dropdown>
-        )
-      },
+      width: 140,
+      render: (_: any, record: Link) => (
+        <Space size="small">
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => navigate(`/links/${record.link_id}`)}
+            title="View Details"
+          />
+          <Button
+            type="text"
+            size="small"
+            icon={<DeleteOutlined />}
+            danger
+            onClick={() => handleDelete(record.link_id)}
+            title="Delete"
+          />
+        </Space>
+      ),
     },
   ]
 

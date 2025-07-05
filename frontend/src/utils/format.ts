@@ -50,8 +50,24 @@ export const formatDuration = (seconds: number): string => {
   return `${secs}s`
 }
 
-export const generateShortUrl = (businessUnit: string, linkId: string, network: string): string => {
-  return `api.domain.com/v1/${businessUnit}/${linkId}?network=${network}`
+export const generateShortUrl = (businessUnit: string, linkId: string, network?: string): string => {
+  // Get the current domain or use a configured domain
+  // For development, replace frontend ports with server port
+  let baseUrl = window.location.origin
+  
+  // Replace common frontend dev ports with server port
+  if (baseUrl.includes(':3000') || baseUrl.includes(':3001') || baseUrl.includes(':5173')) {
+    baseUrl = baseUrl.replace(':3000', ':8080').replace(':3001', ':8080').replace(':5173', ':8080')
+  }
+  
+  const shortUrl = `${baseUrl}/v1/${businessUnit}/${linkId}`
+  
+  // Add network parameter if provided
+  if (network) {
+    return `${shortUrl}?network=${network}`
+  }
+  
+  return shortUrl
 }
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {

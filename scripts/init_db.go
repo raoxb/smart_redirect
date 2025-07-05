@@ -54,9 +54,20 @@ type Target struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+type AccessLog struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	LinkID    uint      `gorm:"index" json:"link_id"`
+	TargetID  uint      `gorm:"index" json:"target_id"`
+	IP        string    `gorm:"size:45" json:"ip"`
+	UserAgent string    `gorm:"size:500" json:"user_agent"`
+	Referer   string    `gorm:"size:500" json:"referer"`
+	Country   string    `gorm:"size:2" json:"country"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func main() {
 	// Load config
-	cfg, err := config.Load("config/test.yaml")
+	cfg, err := config.Load("config/local.yaml")
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
 	}
@@ -85,6 +96,7 @@ func main() {
 		&User{},
 		&Link{},
 		&Target{},
+		&AccessLog{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)

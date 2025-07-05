@@ -27,8 +27,8 @@ const LinkDetail: React.FC = () => {
 
   const handleCopyUrl = async () => {
     if (!link) return
-    const url = generateShortUrl(link.business_unit, link.link_id, link.network)
-    const success = await copyToClipboard(`https://${url}`)
+    const url = generateShortUrl(link.business_unit, link.link_id)
+    const success = await copyToClipboard(url)
     if (success) {
       message.success('URL copied to clipboard!')
     }
