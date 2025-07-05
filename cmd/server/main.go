@@ -63,10 +63,9 @@ func main() {
 		})
 	})
 	
-	router.GET("/v1/:bu/:link_id", middleware.RateLimitMiddleware(redisClient, 1000, time.Hour), redirectHandler.HandleRedirect)
+	router.GET("/v1/:bu/:link_id", redirectHandler.HandleRedirect)
 	
 	apiV1 := router.Group("/api/v1")
-	apiV1.Use(middleware.RateLimitMiddleware(redisClient, 100, time.Hour))
 	{
 		apiV1.POST("/auth/login", authHandler.Login)
 		apiV1.POST("/auth/register", authHandler.Register)
