@@ -77,13 +77,29 @@ npm run type-check
 npm run lint
 ```
 
-### Database
+### Database Initialization
 ```bash
-# Run migrations up
-make migrate-up
+# Initialize database with test data
+go run scripts/init_db.go
 
-# Rollback migrations
-make migrate-down
+# Add test targets for links
+python3 add_test_targets.py
+
+# Create test data via API
+python3 create_test_data.py
+```
+
+### Stress Testing
+```bash
+# Run stress test (duration_hours, threads)
+python3 stress_test.py 1 4
+
+# Run extended stability test  
+python3 stress_test.py 24 8
+
+# Monitor test progress
+tail -f stress_test_*.log
+python3 monitor_test.py
 ```
 
 ### Git Workflow
@@ -111,11 +127,24 @@ git push origin main
 ## Advanced Features
 
 ### Rate Limiting & Security
-- **IP Rate Limiting**: 100 requests/hour per IP (configurable)
-- **Link-specific Limits**: 10 requests/12h per IP per link
-- **Automatic IP Blocking**: Abuse detection and blocking
-- **Geo-targeting**: Country-based access control
-- **Global Traffic Caps**: Per-link visit limits
+- **Business Logic Rate Limiting**: IP-based 12-hour intervals for target allocation
+- **Geographic Targeting**: Country-based target access control  
+- **Caps Management**: Per-target and total visit limits with backup URL redirection
+- **Abuse Prevention**: Smart IP blocking for malicious traffic
+- **Note**: Management API endpoints are not rate-limited to ensure admin access
+
+### Link Management & UI
+- **Enhanced Links Page**: Expanded action buttons with direct copy URL functionality
+- **Copy URL Integration**: One-click copy of actual redirect URLs (not hardcoded domains)
+- **Multi-port Support**: Automatic port detection for dev environments (3000, 3001, 5173 → 8080)
+- **Inline Actions**: View Details and Delete buttons directly visible
+- **Real-time URL Generation**: Dynamic URL generation based on current environment
+
+### Target Distribution & Testing
+- **Multi-target Support**: Each link can have multiple targets with weight-based distribution
+- **Geographic Routing**: IP-based country targeting for personalized redirects
+- **Parameter Transformation**: Dynamic parameter mapping and static parameter injection
+- **Comprehensive Testing**: 16-country IP pools for global traffic simulation
 
 ### Batch Operations
 - **Bulk Link Creation**: Create multiple links with targets
@@ -134,26 +163,34 @@ git push origin main
 ### Test Structure
 - **Unit Tests**: `/test/unit/` - Business logic testing with mocks
 - **Integration Tests**: `/test/integration/` - End-to-end API testing
-- **Fixtures**: `/test/fixtures/` - Test data and helpers
-- **Test Utils**: `/test/testutil/` - Shared testing utilities
+- **Stress Tests**: Root directory - Load testing and stability validation
+- **Test Scripts**: Python scripts for data creation and multi-link testing
+
+### Stress Testing Infrastructure
+- **Multi-link Testing**: 6 short links with 21 targets total
+- **Global IP Simulation**: 16 countries/regions IP pools (US, CN, GB, DE, AU, CA, FR, IT, JP, KR, BR, IN, RU, ES, NL, SE)
+- **Concurrent Load**: Configurable thread count for parallel testing
+- **Real-world Simulation**: Varied user agents, referers, and request patterns
+- **Geographic Distribution**: Country-based target allocation testing
 
 ### Running Tests
 ```bash
-# Run all tests
+# Run unit and integration tests
 make test-all
-
-# Run specific test types
 make test-unit
 make test-integration
 
-# Run with coverage
-make test-coverage
+# Run stress tests
+python3 stress_test.py <hours> <threads>
 
-# Run load tests
-make test-load
+# Examples:
+python3 stress_test.py 1 4      # 1 hour, 4 threads
+python3 stress_test.py 24 8     # 24 hours, 8 threads
+python3 stress_test.py 0.1 2    # 6 minutes, 2 threads
 
-# Run benchmarks
-make bench
+# Monitor running tests
+python3 monitor_test.py
+tail -f stress_test_*.log
 ```
 
 ### Test Configuration
@@ -170,5 +207,53 @@ make bench
 ### Continuous Integration
 Tests run automatically on:
 - Pull request creation
-- Merge to main branch
+- Merge to master branch
 - Release tag creation
+
+## Recent Important Changes
+
+### Rate Limiting Architecture Fix (e4975e5)
+**Critical**: Removed inappropriate rate limiting from management API endpoints
+- **Problem**: Rate limiting was blocking admin login and operations
+- **Solution**: Rate limiting now only applies to redirect business logic per 302.md spec
+- **Impact**: Admin panel and API management now work without artificial limits
+
+### Enhanced Link Management UI (7c2ad0a)
+- **Copy URL Functionality**: Real redirect URLs instead of hardcoded domains
+- **Multi-port Support**: Automatic dev environment port detection (3000/3001/5173 → 8080)
+- **Expanded Actions**: Direct action buttons instead of dropdown menus
+- **Better UX**: One-click copy URL from Link ID column
+
+### Comprehensive Testing Infrastructure (70906d2)
+- **Multi-link Testing**: 6 links with 21 targets across different business units
+- **Global Coverage**: 16 countries/regions IP simulation
+- **Stress Testing**: Configurable duration and thread count
+- **Real-world Patterns**: Varied user agents, referers, and request timing
+
+## Important Implementation Notes
+
+### Rate Limiting Design
+According to 302.md requirements, rate limiting should ONLY affect redirect logic:
+- ✅ IP-based 12-hour intervals for target allocation
+- ✅ Geographic targeting for country-based access
+- ✅ Caps management with backup URL redirection
+- ❌ NOT applied to admin/management endpoints
+
+### URL Generation
+Frontend generateShortUrl() function automatically handles:
+- Development environments (ports 3000, 3001, 5173 → 8080)
+- Production environments (uses actual domain)
+- Optional network parameters
+- Proper HTTPS/HTTP protocol handling
+
+### Database Relationships
+- Links → Targets (one-to-many)
+- Links → AccessLogs (one-to-many) 
+- Targets → AccessLogs (one-to-many)
+- Users → Links (many-to-many via permissions)
+
+### Testing Best Practices
+- Always test both management and redirect functionality
+- Use stress_test.py for load testing with real-world patterns
+- Monitor Redis memory usage during extended tests
+- Check geographic distribution in analytics after testing
